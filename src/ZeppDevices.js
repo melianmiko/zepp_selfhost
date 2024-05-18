@@ -1,7 +1,7 @@
 let cachedDevices = null;
 import storage from "./storage.js";
 
-const CACHE_LIFETIME = 3600 * 24 * 7;
+const CACHE_LIFETIME = 1000 * 3600 * 24 * 7; // 7d
 
 export async function getZeppDevices() {
     if(!cachedDevices) {
