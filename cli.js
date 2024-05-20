@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import {processProject, promptUserChoose} from "./index.js";
 
 if(!process.argv[2]) {

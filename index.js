@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import {ZeppBundle} from "./src/ZeppBundle.js";
 import enquirer from "enquirer";
 import {ZabMakeDeletable} from "./src/ZabMakeDeletable.js";
