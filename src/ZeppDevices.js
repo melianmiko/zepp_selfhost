@@ -22,9 +22,13 @@ export async function getZeppDevices() {
 }
 
 export async function getDevicesByParams(screenType, width, height, chipset) {
+    // Convert to ZeppDevices variant
     if(screenType === "bar")
-        // Convert to ZeppDevices variant
         screenType = "band";
+
+    // Mi Band 7 zeus fix
+    if(chipset === "dialog" && width === 192 && height === 349)
+        height = 490;
 
     const devices = [];
     for(const dev of await getZeppDevices()) {

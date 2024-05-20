@@ -74,21 +74,43 @@ export class SelfHostConfigsGenerator {
             }
 
             for(const pl of sources) {
-                if(sourceUrl[pl])
-                    console.warn(`Multiple bundles with same deviceSource ${pl}`);
-                sourceUrl[pl] = downloadUrl
+                if(sourceUrl[pl]) {
+                    sourceUrl[pl].push(downloadUrl);
+                } else {
+                    sourceUrl[pl] = [downloadUrl]
+                }
             }
 
             for(const device of devices) {
-                if(deviceQr[devices])
-                    console.warn(`Multiple bundles with same deviceName ${device}`);
-                deviceQr[device] = qrUrl;
+                if(deviceQr[device]) {
+                    deviceQr[device].push(qrUrl);
+                } else {
+                    deviceQr[device] = [qrUrl];
+                }
             }
         }
 
+        // Tools
+        const flatMap = (map) => Object.fromEntries(
+            Object.entries(map).map(([k, v]) => [k, v[0]])
+        );
+        const formatConflicts = (arr) => arr.map(
+            (url) => url.split("/").pop()
+        );
+
+        // Check for conflicts
+        // for(const src in sourceUrl)
+        //     if(sourceUrl[src].length > 1)
+        //         console.warn(`More than one target pretend to deviceSource=${src}`,
+        //             formatConflicts(sourceUrl[src]))
+        // for(const dev in deviceQr)
+        //     if(deviceQr[dev].length > 1)
+        //         console.warn(`More than one target pretend to deviceName=${dev}`,
+        //             formatConflicts(deviceQr[dev]))
+
         files["map.json"] = {
-            "device_qr": deviceQr,
-            "source_redirect": sourceUrl,
+            "device_qr": flatMap(deviceQr),
+            "source_redirect": flatMap(sourceUrl),
         }
 
         return files;
