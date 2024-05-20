@@ -5,9 +5,10 @@
   "main": "index.js",
   "type": "module",
   "bin": {
-    "zepp_selfhost": "index.js"
+    "zepp_selfhost": "cli.js"
   },
   "files": [
+    "cli.js",
     "index.js",
     "src"
   ],

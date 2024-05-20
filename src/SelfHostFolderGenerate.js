@@ -3,8 +3,8 @@ import fs from "node:fs";
 import {SelfHostConfigsGenerator} from "./SelfHostConfigsGenerator.js";
 
 export class SelfHostFolderGenerate {
-    static async apply(bundle, baseUrl) {
-        return await new SelfHostFolderGenerate(bundle).apply(baseUrl);
+    static async apply(bundle, baseUrl, withSubFolder) {
+        return await new SelfHostFolderGenerate(bundle).apply(baseUrl, withSubFolder);
     }
 
     /**
@@ -14,13 +14,13 @@ export class SelfHostFolderGenerate {
         this.bundle = bundle;
     }
 
-    async apply(baseUrl) {
+    async apply(baseUrl, withSubFolder) {
         // Prepare serve directory
-        const homeDir = path.dirname(this.bundle.fileLocation);
-        const serveDir = `${homeDir}/serve/${this.bundle.appId}`;
+        const rootDir = path.dirname(this.bundle.fileLocation) + "/serve";
+        const serveDir = withSubFolder ? `${rootDir}/${this.bundle.appId}` : rootDir;
 
-        if(fs.existsSync(serveDir))
-            await fs.promises.rm(serveDir, {recursive: true});
+        if(fs.existsSync(rootDir))
+            await fs.promises.rm(rootDir, {recursive: true});
         await fs.promises.mkdir(serveDir, {recursive: true});
 
         // Write all packages
@@ -30,7 +30,7 @@ export class SelfHostFolderGenerate {
         }
 
         // Write all maps
-        const files = await SelfHostConfigsGenerator.apply(this.bundle, baseUrl);
+        const files = await SelfHostConfigsGenerator.apply(this.bundle, baseUrl, withSubFolder);
         for(const [fileName, fileData] of Object.entries(files)) {
             await fs.promises.writeFile(`${serveDir}/${fileName}`, Buffer.from(JSON.stringify(fileData)));
         }

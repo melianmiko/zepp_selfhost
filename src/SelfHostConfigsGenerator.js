@@ -3,8 +3,8 @@ import {getDevicesByParams, getPlatformToDeviceMap} from "./ZeppDevices.js";
 const platformToDevice = await getPlatformToDeviceMap();
 
 export class SelfHostConfigsGenerator {
-    static apply(bundle, baseURL = "https://example.com") {
-        return new SelfHostConfigsGenerator(bundle).generate(baseURL);
+    static apply(bundle, baseURL = "https://example.com", withSubFolder = true) {
+        return new SelfHostConfigsGenerator(bundle).generate(baseURL, withSubFolder);
     }
 
     /**
@@ -44,20 +44,22 @@ export class SelfHostConfigsGenerator {
         return [devices, sources];
     }
 
-    async generate(baseUrl) {
+    async generate(baseUrl, withSubFolder) {
         const sourceUrl = {};
         const deviceQr = {};
         const files = {};
 
-        const qrUrlTemplate = this.bundle.appType === "app" ?
-            `${baseUrl.replace("https:", "zpkd1:")}/${this.bundle.appId}/%basename%.zpk` :
-            `${baseUrl.replace("https:", "watchface:")}/${this.bundle.appId}/%basename%.json`;
+        const isApp = this.bundle.appType === "app"
+        const transformedBaseUrl = baseUrl.replace("https:", isApp ? "zpkd1:" : "watchface:");
+        const basePath = withSubFolder ? "/" + this.bundle.appId : "";
+        const entryExtension = isApp ? "zpk" : "json";
+        const qrUrlTemplate = `${transformedBaseUrl}${basePath}/%basename%.${entryExtension}`;
 
         for(const row of this.bundle.manifest.zpks) {
             const [devices, sources] = await this.parsePlatform(row.platforms);
 
             const basename = row.name.replace(".zpk", "");
-            const downloadUrl = `${baseUrl}/${this.bundle.appId}/${row.name}`;
+            const downloadUrl = `${baseUrl}${basePath}/${row.name}`;
             const qrUrl = qrUrlTemplate.replace("%basename%", basename);
 
             if(this.bundle.appType === "watchface") {

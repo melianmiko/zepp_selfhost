@@ -3,8 +3,8 @@ import fs from "node:fs";
 import QRCode from 'qrcode';
 
 export class SelfHostQrGenerate {
-    static async apply(bundle, mapData) {
-        return await new SelfHostQrGenerate(bundle).apply(mapData);
+    static async apply(bundle, mapData, withSubFolder) {
+        return await new SelfHostQrGenerate(bundle).apply(mapData, withSubFolder);
     }
 
     /**
@@ -14,13 +14,12 @@ export class SelfHostQrGenerate {
         this.bundle = bundle;
     }
 
-    async apply(mapData) {
+    async apply(mapData, withSubFolder) {
         // Prepare serve directory
-        const homeDir = path.dirname(this.bundle.fileLocation);
-        const serveDir = `${homeDir}/serve/${this.bundle.appId}/QR`;
+        const rootDir = path.dirname(this.bundle.fileLocation) + "/serve";
+        const baseServeDir = withSubFolder ? `${rootDir}/${this.bundle.appId}` : rootDir;
+        const serveDir = `${baseServeDir}/QR`;
 
-        if(fs.existsSync(serveDir))
-            await fs.promises.rm(serveDir, {recursive: true});
         await fs.promises.mkdir(serveDir, {recursive: true});
 
         // Make files
