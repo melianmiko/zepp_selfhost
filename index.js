@@ -33,6 +33,13 @@ export async function promptUserChoose() {
         }
     ]);
 
+    if(!baseURL.startsWith("https:")) {
+        console.error("");
+        console.error("Serve base URL should start with https://, pure HTTP won't work with Zepp application.");
+        console.error("Please, provide foll base URL, example: https://example.com/folder");
+        process.exit(1);
+    }
+
     await storage.setItem("lastActions", actions);
     await storage.setItem("lastBaseUrl", baseURL);
 
