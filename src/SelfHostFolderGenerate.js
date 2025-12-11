@@ -25,7 +25,7 @@ export class SelfHostFolderGenerate {
 
         // Write all packages
         for(const [pkgName, pkgData] of Object.entries(this.bundle.packages)) {
-            const pkgFile = this.bundle.buildPackage(pkgData, true);
+            const pkgFile = this.bundle.buildPackage(pkgData);
             await fs.promises.writeFile(`${serveDir}/${pkgName}`, pkgFile);
         }
 

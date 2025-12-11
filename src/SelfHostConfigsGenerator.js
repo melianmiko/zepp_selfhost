@@ -14,9 +14,27 @@ export class SelfHostConfigsGenerator {
         this.bundle = bundle;
     }
 
-    async parsePlatform(input) {
+    isVersionGreaterOrEqual(v1, v2) {
+        const [v1p, v2p] = [v1, v2].map(
+            v => v.split(".").map(c => parseInt(c))
+        );
+
+        let i = 0;
+        for(; i < v1p.length || i < v2p.length; i++) {
+            if((v1p[i] ?? 0) < (v2p[i] ?? 0)) {
+                return false;
+            }
+        }
+
+        return (v1p[i - 1] ?? 0) >= (v2p[i - 1] ?? 0);
+    }
+
+    async parsePlatform(input, deviceManifest) {
         const devices = [];
         const sources = [];
+        const ignoredDevices = [];
+
+        const runtimeMinVersion = deviceManifest?.runtime?.apiVersion?.minVersion ?? null;
 
         for(const row of input) {
             if(row.deviceSource) {
@@ -27,27 +45,40 @@ export class SelfHostConfigsGenerator {
                     continue;
                 }
 
+                if(runtimeMinVersion && !this.isVersionGreaterOrEqual(device.osVersion, runtimeMinVersion)) {
+                    ignoredDevices.push(device.deviceName);
+                    continue;
+                }
+
                 sources.push(row.deviceSource);
                 devices.push(device.deviceName);
             } else if(row.screenType && row.screenResolution && row.cpuPlatform) {
                 // Generic model
                 const [w, h] = row.screenResolution.split("x").map((r) => parseInt(r));
                 const devs = await getDevicesByParams(row.screenType, w, h, row.cpuPlatform.toLowerCase());
-                devices.push(...devs.map((row) => row.deviceName));
-                for(const row of devs)
+
+                for(const row of devs) {
+                    if(runtimeMinVersion && !this.isVersionGreaterOrEqual(row.osVersion, runtimeMinVersion)) {
+                        ignoredDevices.push(row.deviceName);
+                        continue;
+                    }
+
+                    devices.push(row.deviceName);
                     sources.push(...row.deviceSource);
+                }
             } else {
                 console.warn("Skip unsupported platform declaration schema", row);
             }
         }
 
-        return [devices, sources];
+        return [devices, sources, ignoredDevices];
     }
 
     async generate(baseUrl, withSubFolder) {
         const sourceUrl = {};
         const deviceQr = {};
         const files = {};
+        const allIgnoredDevices = [];
 
         const isApp = this.bundle.appType === "app"
         const transformedBaseUrl = baseUrl.replace("https:", isApp ? "zpkd1:" : "watchface:");
@@ -56,7 +87,9 @@ export class SelfHostConfigsGenerator {
         const qrUrlTemplate = `${transformedBaseUrl}${basePath}/%basename%.${entryExtension}`;
 
         for(const row of this.bundle.manifest.zpks) {
-            const [devices, sources] = await this.parsePlatform(row.platforms);
+            const deviceManifest = this.bundle.packagesDeviceManifests[row.name];
+            const [devices, sources, ignoredDevices] = await this.parsePlatform(row.platforms, deviceManifest);
+            allIgnoredDevices.push(...ignoredDevices);
 
             const basename = row.name.replace(".zpk", "");
             const downloadUrl = `${baseUrl}${basePath}/${row.name}`;
@@ -94,23 +127,11 @@ export class SelfHostConfigsGenerator {
         const flatMap = (map) => Object.fromEntries(
             Object.entries(map).map(([k, v]) => [k, v[0]])
         );
-        const formatConflicts = (arr) => arr.map(
-            (url) => url.split("/").pop()
-        );
-
-        // Check for conflicts
-        // for(const src in sourceUrl)
-        //     if(sourceUrl[src].length > 1)
-        //         console.warn(`More than one target pretend to deviceSource=${src}`,
-        //             formatConflicts(sourceUrl[src]))
-        // for(const dev in deviceQr)
-        //     if(deviceQr[dev].length > 1)
-        //         console.warn(`More than one target pretend to deviceName=${dev}`,
-        //             formatConflicts(deviceQr[dev]))
 
         files["map.json"] = {
             "device_qr": flatMap(deviceQr),
             "source_redirect": flatMap(sourceUrl),
+            "ignored_devices": Object.values(Object.fromEntries(allIgnoredDevices.map((i) => [i, i]))),
         }
 
         return files;

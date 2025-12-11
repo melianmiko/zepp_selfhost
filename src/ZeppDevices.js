@@ -9,7 +9,7 @@ export async function getZeppDevices() {
             console.log("Downloading new zepp_devices.json...");
             const r = await fetch("https://github.com/melianmiko/ZeppOS-DevicesList/raw/main/zepp_devices.json");
             if(r.status !== 200)
-                throw new Error("Can't fetch zepp_devices.json map");
+                throw new Error(`Can't fetch zepp_devices.json map, status=${r.status}`);
             cachedDevices = await r.json();
             await storage.setItem("devices", JSON.stringify(cachedDevices));
             await storage.setItem("devicesExpire", Date.now() + CACHE_LIFETIME);

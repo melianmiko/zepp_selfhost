@@ -8,6 +8,7 @@ export class ZeppBundle {
         };
         this.fileLocation = "";
         this.packages = {};
+        this.packagesDeviceManifests = {};
         this._cacheAppId = null;
         this._cachedAppName = null;
     }
@@ -38,11 +39,6 @@ export class ZeppBundle {
         return this._cachedAppName;
     }
 
-    include(anotherBundle) {
-        this.manifest.zpks.push(...anotherBundle.manifest.zpks);
-        this.packages = Object.assign(this.packages, anotherBundle.packages);
-    }
-
     loadBundle(zabFilePath) {
         const bundle = new Zip(zabFilePath, {});
         for(const file of bundle.getEntries("")) {
@@ -52,30 +48,6 @@ export class ZeppBundle {
                 this.manifest = JSON.parse(file.getData().toString("utf8"));
         }
         this.fileLocation = zabFilePath;
-    }
-
-    buildBundle() {
-        const bundle = new Zip(null, null);
-        const buildPackages = {};
-
-        for(const pkgName in this.packages) {
-            const pkgFile = this.buildPackage(this.packages[pkgName]);
-            bundle.addFile(pkgName, pkgFile);
-            buildPackages[pkgName] = pkgFile;
-        }
-
-        this.refreshChecksums(buildPackages);
-
-        bundle.addFile("manifest.json", Buffer.from(JSON.stringify(this.manifest)));
-
-        return bundle.toBuffer();
-    }
-
-    refreshChecksums(packages) {
-        for(const zpkInfo of this.manifest.zpks) {
-            const data = packages[zpkInfo.name];
-            zpkInfo.md5 = createHash("md5").update(data).digest("hex");
-        }
     }
 
     parsePackage(packageFile) {
@@ -94,13 +66,21 @@ export class ZeppBundle {
             }
             pkgData[zipItem.entryName] = files;
         }
+
+        // Try to load device manifest file
+        const deviceManifest = pkgData['device.zip']['app.json'];
+
+        if(deviceManifest) {
+            this.packagesDeviceManifests[packageFile.entryName] = JSON.parse(deviceManifest.toString("utf-8"))
+        }
+
         this.packages[packageFile.entryName] = pkgData;
     }
 
-    buildPackage(pkgData, watchfaceMode=false) {
+    buildPackage(pkgData) {
         const pkg = new Zip();
 
-        if(watchfaceMode && this.appType === "watchface") {
+        if(this.appType === "watchface") {
             const files = pkgData["device.zip"];
             for(const filename in files) {
                 pkg.addFile(filename, files[filename]);

@@ -6,6 +6,7 @@ import {SelfHostFolderGenerate} from "./src/SelfHostFolderGenerate.js";
 import {SelfHostQrGenerate} from "./src/SelfHostQrGenerate.js";
 import {getAllKnownDeviceNames} from "./src/ZeppDevices.js";
 import storage from "./src/storage.js";
+import chalk from "chalk";
 
 export async function promptUserChoose() {
     const { actions, baseURL } = await enquirer.prompt([
@@ -45,9 +46,8 @@ export async function promptUserChoose() {
     return {actions, baseURL};
 }
 
-export async function processProject(projectPath, userChoose) {
+export async function processProject(zabPath, userChoose) {
     const { actions, baseURL } = userChoose;
-    const zabPath = path.resolve(projectPath);
     const bundle = new ZeppBundle();
     bundle.loadBundle(zabPath);
 
@@ -61,17 +61,47 @@ export async function processProject(projectPath, userChoose) {
     }
 
     // Compatibility report
-    console.log("")
+    console.log("");
     if(bundle.appType === "app") {
         const allDevices = await getAllKnownDeviceNames();
+        const supported = Object.keys(mapJson["device_qr"]);
+        const excluded = mapJson.ignored_devices;
+        const mapped = [...supported, ...excluded];
         const unsupported = [];
+
         for(const dev of allDevices)
-            if(!mapJson["device_qr"][dev])
+            if(!mapped.includes(dev))
                 unsupported.push(dev);
 
-        console.log("ZeppOS devices compatibility coverage:", (100 - (unsupported.length / allDevices.length * 100)).toFixed(2) + "%");
-        if(unsupported.length > 0)
-            console.log("Unsupported by your app:", unsupported.join(", "))
+        const percent = supported.length / allDevices.length * 100
+        const color = percent > 60 ? chalk.green : chalk.yellow;
+
+        console.log(
+            chalk.bold("Compatibility coverage:"),
+            color(`${percent.toFixed(2)}%`)
+        );
+        console.log('');
+
+        console.log(
+            chalk.bold("Supported:"),
+            ...supported.map(it => chalk.greenBright(it) + ','),
+        );
+
+        if(excluded.length > 0) {
+            console.log(
+                chalk.bold("Excluded due to OS/API version:"),
+                ...excluded.map(it => chalk.yellowBright(it) + ','),
+            );
+        }
+
+        if(unsupported.length > 0) {
+            console.log(
+                chalk.bold("Not supported:"),
+                ...unsupported.map(it => chalk.redBright(it) + ','),
+            );
+        }
+
+        console.log('');
     } else {
         console.log("Ready for devices:", Object.keys(mapJson["device_qr"]).join(", "));
     }
