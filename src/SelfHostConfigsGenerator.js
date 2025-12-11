@@ -21,12 +21,14 @@ export class SelfHostConfigsGenerator {
 
         let i = 0;
         for(; i < v1p.length || i < v2p.length; i++) {
-            if((v1p[i] ?? 0) < (v2p[i] ?? 0)) {
+            if((v1p[i] ?? 0) > (v2p[i] ?? 0)) {
+                return true;
+            } else if((v1p[i] ?? 0) < (v2p[i] ?? 0)) {
                 return false;
             }
         }
 
-        return (v1p[i - 1] ?? 0) >= (v2p[i - 1] ?? 0);
+        return (v1p[i - 1] ?? 0) === (v2p[i - 1] ?? 0);
     }
 
     async parsePlatform(input, deviceManifest) {
@@ -46,6 +48,7 @@ export class SelfHostConfigsGenerator {
                 }
 
                 if(runtimeMinVersion && !this.isVersionGreaterOrEqual(device.osVersion, runtimeMinVersion)) {
+                    console.log(device.osVersion, '<', runtimeMinVersion);
                     ignoredDevices.push(device.deviceName);
                     continue;
                 }

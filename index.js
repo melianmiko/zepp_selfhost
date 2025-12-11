@@ -84,20 +84,20 @@ export async function processProject(zabPath, userChoose) {
 
         console.log(
             chalk.bold("Supported:"),
-            ...supported.map(it => chalk.greenBright(it) + ','),
+            supported.map(it => chalk.greenBright(it)).join(", "),
         );
 
         if(excluded.length > 0) {
             console.log(
                 chalk.bold("Excluded due to OS/API version:"),
-                ...excluded.map(it => chalk.yellowBright(it) + ','),
+                excluded.map(it => chalk.yellowBright(it)).join(", "),
             );
         }
 
         if(unsupported.length > 0) {
             console.log(
                 chalk.bold("Not supported:"),
-                ...unsupported.map(it => chalk.redBright(it) + ','),
+                unsupported.map(it => chalk.redBright(it)).join(", "),
             );
         }
 

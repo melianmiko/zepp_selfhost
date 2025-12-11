@@ -1,11 +1,16 @@
 let cachedDevices = null;
 import storage from "./storage.js";
+import packageJson from '../package.json' with { type: 'json' };
 
-const CACHE_LIFETIME = 1000 * 3600 * 24 * 7; // 7d
+const CACHE_LIFETIME = 1000 * 3600 * 24 * 3; // 3d
 
 export async function getZeppDevices() {
     if(!cachedDevices) {
-        if(!(await storage.getItem("devices")) || await storage.getItem("devicesExpire") <= Date.now()) {
+        if(
+            !(await storage.getItem("devices"))
+            || await storage.getItem("devicesExpire") <= Date.now()
+            || await storage.getItem("appRelease") !== packageJson.version
+        ) {
             console.log("Downloading new zepp_devices.json...");
             const r = await fetch("https://github.com/melianmiko/ZeppOS-DevicesList/raw/main/zepp_devices.json");
             if(r.status !== 200)
@@ -13,6 +18,7 @@ export async function getZeppDevices() {
             cachedDevices = await r.json();
             await storage.setItem("devices", JSON.stringify(cachedDevices));
             await storage.setItem("devicesExpire", Date.now() + CACHE_LIFETIME);
+            await storage.setItem("appRelease", packageJson.version);
         } else {
             cachedDevices = JSON.parse(await storage.getItem("devices"));
         }
